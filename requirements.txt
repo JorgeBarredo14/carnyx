@@ -1,0 +1,14 @@
+scikit-learn
+numpy
+pandas
+matplotlib
+seaborn
+scipy
+pyserial
+pyvisa
+lecroy3
+s_dbw
+paramiko
+scp
+Pillow
+tektronik_mso56
