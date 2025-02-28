@@ -1,6 +1,5 @@
-# Power Consumption Analysis PoC
-
-This repository contains various tools and scripts for performing **Side-Channel Analysis (SCA)** based on power consumption. It includes resources to perform automated power consumption analysis on different platforms.
+# CARNYX: A Framework for Vulnerability Detection via Power Consumption Analysis in Low-End Embedded Systems
+This repository contains various tools and scripts for performing **Side-Channel Analysis (SCA)** based on power consumption, belonging to CARNYX framework. It includes resources to perform automated power consumption analysis on different platforms.
 
 ## Directory Structure
 
