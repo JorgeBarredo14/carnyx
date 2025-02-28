@@ -51,7 +51,7 @@ The PoC implements a comprehensive pipeline for power consumption analysis:
    - Automatic determination of optimal number of components
    - Variance analysis and cumulative variance visualization
 
-4. **Clustering and Classification**:
+4. **Clustering and Categorization**:
    - HDBSCAN (Hierarchical Density-Based Spatial Clustering of Applications with Noise) for identifying execution patterns
    - Cluster validation using silhouette score, Davies-Bouldin index, and Calinski-Harabasz index
    - Confusion matrix generation for evaluating classification performance
