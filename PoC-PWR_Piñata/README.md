@@ -1,10 +1,9 @@
-# Power Consumption Analysis PoC for STM32-F429ZI Ethernet
-
-This folder contains a Proof of Concept (PoC) implementation for performing Side-Channel Analysis (SCA) based on power consumption measurements on the STM32 NUCLEO-144 (STM32-F429ZI) board via its Ethernet interface.
+# Power Consumption Analysis PoC for Riscure Piñata
+This folder contains a Proof of Concept (PoC) implementation for performing Side-Channel Analysis (SCA) based on power consumption measurements on the Riscure Piñata board via its serial port.
 
 ## Overview
 
-This PoC demonstrates an automated pipeline for power consumption analysis on the STM32-F429ZI platform. Key features include:
+This PoC demonstrates an automated pipeline for power consumption analysis on the Piñata platform. Key features include:
 
 - Power trace collection from calibration and bug-induced executions
 - Preprocessing of power traces with outlier detection and imputation
