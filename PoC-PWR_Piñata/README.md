@@ -4,7 +4,7 @@ This folder contains a Proof of Concept (PoC) implementation for performing Side
 
 ## Overview
 
-This PoC showcases an automated pipeline for power consumption analysis on the STM32-F429ZI platform. Key features include:
+This PoC demonstrates an automated pipeline for power consumption analysis on the STM32-F429ZI platform. Key features include:
 
 - Power trace collection from calibration and bug-induced executions
 - Preprocessing of power traces with outlier detection and imputation
@@ -16,9 +16,9 @@ Note: The signals in this PoC are illustrative examples and differ from those in
 
 ## File Structure
 
-- `PWR_monitoring.py`: Main Python script that orchestrates power trace extraction, preprocessing, analysis, clustering, and visualization.
+- `PoC_PWR_Piñata.py`: Main Python script that orchestrates power trace extraction, preprocessing, analysis, clustering, and visualization.
 - `lecroy3.py`: Helper module for interfacing with LeCroy oscilloscopes to acquire power traces.
-- `STM32-F429ZI_PWR_bugs_2024_02_20_10o32_part_aa` to `part_am`: Split archive files containing sample power consumption traces. These are recombined and extracted by the script into a single ZIP file.
+- `pinata_PWR_bugs_2023_11_22_11o10.zip`: Single ZIP file containing sample power consumption traces from the STM32-F429ZI board, extracted by the script.
 
 ## Prerequisites
 
