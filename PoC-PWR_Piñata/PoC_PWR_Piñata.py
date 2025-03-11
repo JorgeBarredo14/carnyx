@@ -310,18 +310,6 @@ def clustering_procedure(pca_samples, kind):
     unique, counts = numpy.unique(y_pred, return_counts=True)
     print("Clustering Results:", dict(zip(unique, counts)))
     
-    fig, ax1 = plt.subplots(figsize=(20, 8))
-    x = np.linspace(2 * cal_n_traces + 1, 2 * cal_n_traces + stop_index, stop_index)
-    plt.plot(x, silh_score[:stop_index], '-^b', label='Silhouette score')
-    plt.plot(x, davies_score[:stop_index], '--g', label='Davies-Bouldin score')
-    ax1.set_ylabel("Score", color='g', fontsize=18)
-    ax1.set_xlabel("Number of elements per cluster", fontsize=18)
-    ax1.tick_params(axis='x', labelsize=18)
-    
-    ax2 = ax1.twinx()
-    plt.plot(x, calinski_score[:stop_index], ':r', label='Calinski-Harabasz score')
-    ax2.set_ylabel("Score", color='r', fontsize=18)
-           
     bugs_entries_list = [mapeo_bugs[valor] for valor in entries_list]
     etiquetas_unicas_true = np.unique(bugs_entries_list)
     etiquetas_unicas_pred = np.unique(y_pred[2 * cal_n_traces:])
@@ -403,8 +391,7 @@ def clustering_procedure(pca_samples, kind):
 
 def processing(input_signal, kind):
     globals()[f"{kind}_outlied_signal"] = outlier_detection(input_signal, kind)
-    globals()[f"{kind}_robust_samples"] = robust_covariance_procedure(globals()[f"{kind}_outlied_signal"], kind)
-    globals()[f"{kind}_pca_samples"] = pca_technique_application(globals()[f"{kind}_robust_samples"], kind)
+    globals()[f"{kind}_pca_samples"] = pca_technique_application(globals()[f"{kind}_outlied_signal"], kind)
     globals()[f"{kind}_etiquetas_unicas_true"], globals()[f"{kind}_etiquetas_unicas_pred"] = clustering_procedure(globals()[f"{kind}_pca_samples"], kind)
 
 def operation():
