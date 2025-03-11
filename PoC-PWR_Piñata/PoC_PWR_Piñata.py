@@ -285,56 +285,42 @@ def pca_technique_application(robust_samples, kind):
 
 def clustering_procedure(pca_samples, kind):
     global entries_list, n_tests, cal_n_traces, n_traces, y_pred, gauss_dict, mapeo_strings, mapeo_bugs, val, save_path, device, date
+      
+    print("Performing clustering...")
+    labels_array = [[np.nan for y in range(2 * cal_n_traces + n_traces)] for x in range(n_traces)]
     
-    varianzas = np.array([np.nan for x in range(n_traces)])
-    stop_index = n_traces
-    for i in range(1, 2):
-        print("Searching stop index for sliding window={}...".format(int(i)))
-        silh_score = [np.nan for x in range(n_traces)]
-        calinski_score = np.array([np.nan for x in range(n_traces)])
-        davies_score = [np.nan for x in range(n_traces)]
-        sdbw_score = [np.nan for x in range(n_traces)]
-        labels_array = [[np.nan for y in range(2 * cal_n_traces + n_traces)] for x in range(n_traces)]
-        cons_values = int(i)
-        max_nans = int(gauss_dict[val] * cons_values)
+    for index in range(1, n_traces + 1):
+        data = pca_samples[:(2 * cal_n_traces + index)]
+        instances = np.shape(data)[0]
+        neighbors = NearestNeighbors(n_neighbors=n_tests).fit(data)
+        distances, _ = neighbors.kneighbors(data)
+        distances = np.sort(distances, axis=0)[:, 1]
+        eps = distances[instances - n_tests - 1]
+        if n_tests == 0:
+            eps = distances[round(instances * 0.99)]
+        min_samples = round(n_tests * 0.8)
         
-        for index in range(1, n_traces + 1):
-            data = pca_samples[:(2 * cal_n_traces + index)]
-            instances = np.shape(data)[0]
-            neighbors = NearestNeighbors(n_neighbors=n_tests).fit(data)
-            distances, _ = neighbors.kneighbors(data)
-            distances = np.sort(distances, axis=0)[:, 1]
-            eps = distances[instances - n_tests - 1]
-            if n_tests == 0:
-                eps = distances[round(instances * 0.99)]
-            min_samples = round(n_tests * 0.8)
-            
-            db = HDBSCAN(cluster_selection_epsilon=eps, min_samples=1)
-            y_pred = db.fit_predict(data)
-            labels_array[index - 1] = db.labels_
-            
-            n_clusters_ = len(set(db.labels_)) - (1 if -1 in db.labels_ else 0)
-            n_noise_ = list(db.labels_).count(-1)
-            
-            silh_score[index - 1] = silhouette_score(data, db.labels_)
-            calinski_score[index - 1] = calinski_harabasz_score(data, db.labels_)
-            davies_score[index - 1] = davies_bouldin_score(data, db.labels_)
-            sdbw_score[index - 1] = S_Dbw(data, db.labels_, method='Halkidi', metric='euclidean')
+        db = HDBSCAN(cluster_selection_epsilon=eps, min_samples=1)
+        y_pred = db.fit_predict(data)
+        labels_array[index - 1] = db.labels_
         
-        unique, counts = numpy.unique(y_pred, return_counts=True)
-        print("Clustering Results:", dict(zip(unique, counts)))
-        
-        fig, ax1 = plt.subplots(figsize=(20, 8))
-        x = np.linspace(2 * cal_n_traces + 1, 2 * cal_n_traces + stop_index, stop_index)
-        plt.plot(x, silh_score[:stop_index], '-^b', label='Silhouette score')
-        plt.plot(x, davies_score[:stop_index], '--g', label='Davies-Bouldin score')
-        ax1.set_ylabel("Score", color='g', fontsize=18)
-        ax1.set_xlabel("Number of elements per cluster", fontsize=18)
-        ax1.tick_params(axis='x', labelsize=18)
-        
-        ax2 = ax1.twinx()
-        plt.plot(x, calinski_score[:stop_index], ':r', label='Calinski-Harabasz score')
-        ax2.set_ylabel("Score", color='r', fontsize=18)
+        n_clusters_ = len(set(db.labels_)) - (1 if -1 in db.labels_ else 0)
+        n_noise_ = list(db.labels_).count(-1)        
+    
+    unique, counts = numpy.unique(y_pred, return_counts=True)
+    print("Clustering Results:", dict(zip(unique, counts)))
+    
+    fig, ax1 = plt.subplots(figsize=(20, 8))
+    x = np.linspace(2 * cal_n_traces + 1, 2 * cal_n_traces + stop_index, stop_index)
+    plt.plot(x, silh_score[:stop_index], '-^b', label='Silhouette score')
+    plt.plot(x, davies_score[:stop_index], '--g', label='Davies-Bouldin score')
+    ax1.set_ylabel("Score", color='g', fontsize=18)
+    ax1.set_xlabel("Number of elements per cluster", fontsize=18)
+    ax1.tick_params(axis='x', labelsize=18)
+    
+    ax2 = ax1.twinx()
+    plt.plot(x, calinski_score[:stop_index], ':r', label='Calinski-Harabasz score')
+    ax2.set_ylabel("Score", color='r', fontsize=18)
            
     bugs_entries_list = [mapeo_bugs[valor] for valor in entries_list]
     etiquetas_unicas_true = np.unique(bugs_entries_list)
