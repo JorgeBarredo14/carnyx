@@ -39,23 +39,9 @@ from scipy.stats import norm
 import paramiko
 from scp import SCPClient
 import os.path
-from threading import *
 import os
-from sklearn.metrics import confusion_matrix
-from scipy.fft import fft, rfft
-import subprocess
-import threading 
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.lines import Line2D
-from collections import Counter
-import tkinter as tk
-import tkinter.ttk as ttk
-from tkinter.filedialog import *
-import tkinter.filedialog as filedialog
-from tkinter import StringVar, IntVar, LabelFrame, Label, Button, messagebox
-from PIL import Image, ImageTk
 import zipfile
-import os
 
 # Warning configuration
 import warnings
@@ -63,19 +49,20 @@ warnings.filterwarnings('ignore')
 
 SHOW_GRAPH = False
 
-device_ip = "X.X.X.X"  # Anonymized IP
-local_ip = "Y.Y.Y.Y"   # Anonymized IP
+stm32_ip = "X.X.X.X"  # Anonymized IP
+server_ip = "Y.Y.Y.Y"   # Anonymized IP
 n_fuzz = 1
 device = "STM32-F429ZI"
+date = '2024_02_20_10o32'
 
 # Get the directory of the current script
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Define the pattern for the parts
-zip_part_prefix = os.path.join(script_dir, 'STM32-F429ZI_PWR_bugs_2024_02_20_10o32_part_')
+zip_part_prefix = os.path.join(script_dir, 'STM32-F429ZI_PWR_bugs_' + date + '_part_')
 
 # Output zip filename to combine parts
-zip_filename = os.path.join(script_dir, 'STM32-F429ZI_PWR_bugs_2024_02_20_10o32.zip')
+zip_filename = os.path.join(script_dir, 'STM32-F429ZI_PWR_bugs_' + date + '.zip')
 
 # Check if all parts exist (parts are named part_aa, part_ab, ..., part_am)
 parts_exist = True
@@ -104,7 +91,7 @@ else:
 # Now, unzip the recombined file if it exists
 if os.path.isfile(zip_filename):
     # Destination directory (in the same folder as the script)
-    extract_to = os.path.join(script_dir, 'STM32-F429ZI_PWR_bugs_2024_02_20_10o32')
+    extract_to = os.path.join(script_dir, 'STM32-F429ZI_PWR_bugs_' + date)
 
     # Create the destination directory if it doesn't exist
     os.makedirs(extract_to, exist_ok=True)
@@ -120,14 +107,12 @@ if os.path.isfile(zip_filename):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
-    # Define paths based on extraction
-    base_path = './STM32-F429ZI_PWR_bugs_2024_02_20_10o32/'
-    list_nfs_path = base_path + device  # Anonymized path
-    PWR_calibration_path = base_path + "calibration/"  # Anonymized path
-    PWR_entries_nfs_path = base_path  # Anonymized path
-    save_path = base_path  # Anonymized path
-
-
+# Define paths based on extraction
+base_path = './STM32-F429ZI_PWR_bugs_' + date + '/'
+list_nfs_path = base_path + device  # Anonymized path
+PWR_calibration_path = base_path + "calibration/" # Anonymized path
+PWR_entries_nfs_path = base_path  # Anonymized path
+save_path = base_path  # Anonymized path
 
 # FIXED VARIABLES FOR TESTING
 n_files = 3
@@ -162,23 +147,8 @@ mapeo_bugs = {
     'a3': 'E0210', 'a0': 'SUT00I', 'a1': 'SUT00F'
 }
 
-def generate_beep():
-    # Initialize VISA connection
-    resource = f'TCPIP0::[Oscilloscope_IP]::INSTR'  # Anonymized IP
-    oscilloscope = visa.ResourceManager().open_resource(resource)
-    try:
-        # Send SCPI command to generate a beep
-        oscilloscope.write(":SYST:BEEP")
-        time.sleep(0.5)
-    finally:
-        oscilloscope.close()
-
 def get_class_name(obj):
     return type(obj).__name__
-
-def robust_covariance(signal):  # Stage 3
-    detector = EllipticEnvelope(contamination=0.1, assume_centered=True)
-    return detector.fit(signal).predict(signal)
 
 def outlier_detection(input_signal, kind):
     global n_samples, n_files, imp_model
@@ -239,21 +209,6 @@ def outlier_detection(input_signal, kind):
     outlied_signal = [np.atleast_1d(np.asarray(x, dtype=np.int64)) for x in outlied_signal]
     return outlied_signal
 
-def robust_covariance_procedure(outlied_signal, kind):
-    global n_files, n_traces, n_samples
-    robust_samples = np.array([[[0 for z in range(np.shape(outlied_signal)[2])] for y in range(np.shape(outlied_signal)[1])] 
-                              for x in range(np.shape(outlied_signal)[0])])
-    
-    for test in range(np.shape(outlied_signal)[0]):
-        ceros_por_fila = np.count_nonzero(outlied_signal[test] == 0, axis=1)
-        indice_25000_ceros = np.where(ceros_por_fila == n_samples)[0]
-        for i in range(np.shape(outlied_signal)[1]):
-            if ceros_por_fila[i] == 0:
-                continue
-            elif test == 2 or (test < 2 and i not in indice_25000_ceros):
-                robust_samples[test][i] = robust_covariance(np.transpose(outlied_signal[test][i, np.newaxis]))
-    return robust_samples
-
 def pca_technique_application(robust_samples, kind):
     global n_traces, n_samples, max_n_components_pca, save_path, device, date, pca_samples
     pca_samples = np.array([[0 for y in range(np.shape(robust_samples)[2])] 
@@ -312,55 +267,30 @@ def pca_technique_application(robust_samples, kind):
 def clustering_procedure(pca_samples, kind):
     global entries_list, n_tests, cal_n_traces, n_traces, y_pred, gauss_dict, mapeo_strings, mapeo_bugs, val, save_path, device, date
     
-    varianzas = np.array([np.nan for x in range(n_traces)])
-    stop_index = n_traces
-    for i in range(1, 2):
-        print("Searching stop index for sliding window={}...".format(int(i)))
-        silh_score = [np.nan for x in range(n_traces)]
-        calinski_score = np.array([np.nan for x in range(n_traces)])
-        davies_score = [np.nan for x in range(n_traces)]
-        sdbw_score = [np.nan for x in range(n_traces)]
-        labels_array = [[np.nan for y in range(2 * cal_n_traces + n_traces)] for x in range(n_traces)]
-        cons_values = int(i)
-        max_nans = int(gauss_dict[val] * cons_values)
+    print("Searching stop index for sliding window={}...".format(int(i)))
+    silh_score = [np.nan for x in range(n_traces)]
+    calinski_score = np.array([np.nan for x in range(n_traces)])
+    davies_score = [np.nan for x in range(n_traces)]
+    sdbw_score = [np.nan for x in range(n_traces)]
+    labels_array = [[np.nan for y in range(2 * cal_n_traces + n_traces)] for x in range(n_traces)]
+    
+    for index in range(1, n_traces + 1):
+        data = pca_samples[:(2 * cal_n_traces + index)]
+        instances = np.shape(data)[0]
+        neighbors = NearestNeighbors(n_neighbors=n_tests).fit(data)
+        distances, _ = neighbors.kneighbors(data)
+        distances = np.sort(distances, axis=0)[:, 1]
+        eps = distances[instances - n_tests - 1]
+        if n_tests == 0:
+            eps = distances[round(instances * 0.99)]
+        min_samples = round(n_tests * 0.8)
         
-        for index in range(1, n_traces + 1):
-            data = pca_samples[:(2 * cal_n_traces + index)]
-            instances = np.shape(data)[0]
-            neighbors = NearestNeighbors(n_neighbors=n_tests).fit(data)
-            distances, _ = neighbors.kneighbors(data)
-            distances = np.sort(distances, axis=0)[:, 1]
-            eps = distances[instances - n_tests - 1]
-            if n_tests == 0:
-                eps = distances[round(instances * 0.99)]
-            min_samples = round(n_tests * 0.8)
-            
-            db = HDBSCAN(cluster_selection_epsilon=eps, min_samples=1)
-            y_pred = db.fit_predict(data)
-            labels_array[index - 1] = db.labels_
-            
-            n_clusters_ = len(set(db.labels_)) - (1 if -1 in db.labels_ else 0)
-            n_noise_ = list(db.labels_).count(-1)
-            
-            silh_score[index - 1] = silhouette_score(data, db.labels_)
-            calinski_score[index - 1] = calinski_harabasz_score(data, db.labels_)
-            davies_score[index - 1] = davies_bouldin_score(data, db.labels_)
-            sdbw_score[index - 1] = S_Dbw(data, db.labels_, method='Halkidi', metric='euclidean')
-        
-        unique, counts = numpy.unique(y_pred, return_counts=True)
-        print("Clustering Results:", dict(zip(unique, counts)))
-        
-        fig, ax1 = plt.subplots(figsize=(20, 8))
-        x = np.linspace(2 * cal_n_traces + 1, 2 * cal_n_traces + stop_index, stop_index)
-        plt.plot(x, silh_score[:stop_index], '-^b', label='Silhouette score')
-        plt.plot(x, davies_score[:stop_index], '--g', label='Davies-Bouldin score')
-        ax1.set_ylabel("Score", color='g', fontsize=18)
-        ax1.set_xlabel("Number of elements per cluster", fontsize=18)
-        ax1.tick_params(axis='x', labelsize=18)
-        
-        ax2 = ax1.twinx()
-        plt.plot(x, calinski_score[:stop_index], ':r', label='Calinski-Harabasz score')
-        ax2.set_ylabel("Score", color='r', fontsize=18)
+        db = HDBSCAN(cluster_selection_epsilon=eps, min_samples=1)
+        y_pred = db.fit_predict(data)
+        labels_array[index - 1] = db.labels_
+                
+    unique, counts = numpy.unique(y_pred, return_counts=True)
+    print("Clustering Results:", dict(zip(unique, counts)))
            
     bugs_entries_list = [mapeo_bugs[valor] for valor in entries_list]
     etiquetas_unicas_true = np.unique(bugs_entries_list)
@@ -401,8 +331,8 @@ def clustering_procedure(pca_samples, kind):
     plt.xticks(np.arange(len(etiquetas_unicas_pred)), etiquetas_unicas_pred, rotation=90)
     plt.yticks(np.arange(len(etiquetas_unicas_true)), etiquetas_unicas_true)
     plt.tick_params(axis='both', which='major', labelsize=22)
-    plt.xlabel('Predicted Labels', fontsize=22)
-    plt.ylabel('Real Labels', rotation=90, verticalalignment='center', fontsize=22)
+    plt.xlabel('Assigned Labels', fontsize=22)
+    plt.ylabel('Actual Labels', rotation=90, verticalalignment='center', fontsize=22)
     plt.savefig(save_path + device + "_entries_list_" + date + "_CONFUSION_MATRIX_TIMEDOMAIN_" + str(get_class_name(db)) + "_PWR.png", bbox_inches='tight', dpi=100)
     plt.show()
     
@@ -413,7 +343,6 @@ def clustering_procedure(pca_samples, kind):
     sorted_labels = sorted(set(y_pred_changed[2 * cal_n_traces + 1:]))
     legend_elements = []
     string_labels = [label for label in sorted_labels if any(char.isalpha() for char in label)]
-    numeric_labels = [label for label in sorted_labels if label.isdigit()]
     
     for i in range(len(string_labels)):
         label = string_labels[i]
@@ -443,8 +372,7 @@ def clustering_procedure(pca_samples, kind):
 
 def processing(input_signal, kind):
     globals()[f"{kind}_outlied_signal"] = outlier_detection(input_signal, kind)
-    globals()[f"{kind}_robust_samples"] = robust_covariance_procedure(globals()[f"{kind}_outlied_signal"], kind)
-    globals()[f"{kind}_pca_samples"] = pca_technique_application(globals()[f"{kind}_robust_samples"], kind)
+    globals()[f"{kind}_pca_samples"] = pca_technique_application(globals()[f"{kind}_outlied_signal"], kind)
     globals()[f"{kind}_etiquetas_unicas_true"], globals()[f"{kind}_etiquetas_unicas_pred"] = clustering_procedure(globals()[f"{kind}_pca_samples"], kind)
 
 def operation():
@@ -506,7 +434,7 @@ start1 = time.time()
 # SSH CONNECTION TO DEVICE (Commented out for anonymization)
 # ssh = paramiko.client.SSHClient()
 # ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-# ssh.connect(device_ip, username="[user]", password="[password]")
+# ssh.connect(stm32_ip, username="[user]", password="[password]")
 
 start = time.time()
 for it in range(n_fuzz):
@@ -514,7 +442,11 @@ for it in range(n_fuzz):
     print("ITERATION", it + 1)
     entries = "a0,a1,00,02,03,04,05,06,07,08,09,0a,0b,0c,0d,0e,0f,a3"
     cal_n_traces = 100
-    date = "2024_02_20_10o32"  # Example date, adjust as needed
+    
+    # entries_list_creation(entries)
+    # calibration(ssh)
+    # bugs_capture(ssh)
+    
     with open(list_nfs_path + "_entries_list_" + date + ".csv") as file:
         entries_list = [line.rstrip() for line in file]
     number_entries_list = [mapeo_strings[valor] for valor in entries_list]
