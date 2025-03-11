@@ -48,14 +48,7 @@ import threading
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.lines import Line2D
 from collections import Counter
-import tkinter as tk
-import tkinter.ttk as ttk
-from tkinter.filedialog import *
-import tkinter.filedialog as filedialog
-from tkinter import StringVar, IntVar, LabelFrame, Label, Button, messagebox
-from PIL import Image, ImageTk
 import zipfile
-import os
 
 # Warning configuration
 import warnings
@@ -140,11 +133,6 @@ imp_model = 6
 # GLOBAL PARAMETERS
 gauss_dict = dict([(1, 0.682), (2, 0.954)])
 val = 1
-silh_score = []
-calinski_score = []
-davies_score = []
-sdbw_score = []
-variance_score = []
 variance_coefficient = []
 max_n_components_pca = []
 labels_array = []
@@ -163,23 +151,8 @@ mapeo_bugs = {
     'a3': 'E0210', 'a0': 'SUT00I', 'a1': 'SUT00F'
 }
 
-def generate_beep():
-    # Initialize VISA connection
-    resource = f'TCPIP0::[Oscilloscope_IP]::INSTR'  # Anonymized IP
-    oscilloscope = visa.ResourceManager().open_resource(resource)
-    try:
-        # Send SCPI command to generate a beep
-        oscilloscope.write(":SYST:BEEP")
-        time.sleep(0.5)
-    finally:
-        oscilloscope.close()
-
 def get_class_name(obj):
     return type(obj).__name__
-
-def robust_covariance(signal):  # Stage 3
-    detector = EllipticEnvelope(contamination=0.1, assume_centered=True)
-    return detector.fit(signal).predict(signal)
 
 def outlier_detection(input_signal, kind):
     global n_samples, n_files, imp_model
@@ -240,21 +213,6 @@ def outlier_detection(input_signal, kind):
     outlied_signal = [np.atleast_1d(np.asarray(x, dtype=np.int64)) for x in outlied_signal]
     return outlied_signal
 
-def robust_covariance_procedure(outlied_signal, kind):
-    global n_files, n_traces, n_samples
-    robust_samples = np.array([[[0 for z in range(np.shape(outlied_signal)[2])] for y in range(np.shape(outlied_signal)[1])] 
-                              for x in range(np.shape(outlied_signal)[0])])
-    
-    for test in range(np.shape(outlied_signal)[0]):
-        ceros_por_fila = np.count_nonzero(outlied_signal[test] == 0, axis=1)
-        indice_25000_ceros = np.where(ceros_por_fila == n_samples)[0]
-        for i in range(np.shape(outlied_signal)[1]):
-            if ceros_por_fila[i] == 0:
-                continue
-            elif test == 2 or (test < 2 and i not in indice_25000_ceros):
-                robust_samples[test][i] = robust_covariance(np.transpose(outlied_signal[test][i, np.newaxis]))
-    return robust_samples
-
 def pca_technique_application(robust_samples, kind):
     global n_traces, n_samples, max_n_components_pca, save_path, device, date, pca_samples
     pca_samples = np.array([[0 for y in range(np.shape(robust_samples)[2])] 
@@ -313,40 +271,32 @@ def pca_technique_application(robust_samples, kind):
 def clustering_procedure(pca_samples, kind):
     global entries_list, n_tests, cal_n_traces, n_traces, y_pred, gauss_dict, mapeo_strings, mapeo_bugs, val, save_path, device, date
     
-    varianzas = np.array([np.nan for x in range(n_traces)])
-    stop_index = n_traces
-    for i in range(1, 2):
-        print("Searching stop index for sliding window={}...".format(int(i)))
-        silh_score = [np.nan for x in range(n_traces)]
-        calinski_score = np.array([np.nan for x in range(n_traces)])
-        davies_score = [np.nan for x in range(n_traces)]
-        sdbw_score = [np.nan for x in range(n_traces)]
-        labels_array = [[np.nan for y in range(2 * cal_n_traces + n_traces)] for x in range(n_traces)]
-        cons_values = int(i)
-        max_nans = int(gauss_dict[val] * cons_values)
+    print("Performing clustering...")
+    silh_score = [np.nan for x in range(n_traces)]
+    calinski_score = np.array([np.nan for x in range(n_traces)])
+    davies_score = [np.nan for x in range(n_traces)]
+    sdbw_score = [np.nan for x in range(n_traces)]
+    labels_array = [[np.nan for y in range(2 * cal_n_traces + n_traces)] for x in range(n_traces)]
+    cons_values = int(i)
+    max_nans = int(gauss_dict[val] * cons_values)
+    
+    for index in range(1, n_traces + 1):
+        data = pca_samples[:(2 * cal_n_traces + index)]
+        instances = np.shape(data)[0]
+        neighbors = NearestNeighbors(n_neighbors=n_tests).fit(data)
+        distances, _ = neighbors.kneighbors(data)
+        distances = np.sort(distances, axis=0)[:, 1]
+        eps = distances[instances - n_tests - 1]
+        if n_tests == 0:
+            eps = distances[round(instances * 0.99)]
+        min_samples = round(n_tests * 0.8)
         
-        for index in range(1, n_traces + 1):
-            data = pca_samples[:(2 * cal_n_traces + index)]
-            instances = np.shape(data)[0]
-            neighbors = NearestNeighbors(n_neighbors=n_tests).fit(data)
-            distances, _ = neighbors.kneighbors(data)
-            distances = np.sort(distances, axis=0)[:, 1]
-            eps = distances[instances - n_tests - 1]
-            if n_tests == 0:
-                eps = distances[round(instances * 0.99)]
-            min_samples = round(n_tests * 0.8)
-            
-            db = HDBSCAN(cluster_selection_epsilon=eps, min_samples=1)
-            y_pred = db.fit_predict(data)
-            labels_array[index - 1] = db.labels_
-            
-            n_clusters_ = len(set(db.labels_)) - (1 if -1 in db.labels_ else 0)
-            n_noise_ = list(db.labels_).count(-1)
-            
-            silh_score[index - 1] = silhouette_score(data, db.labels_)
-            calinski_score[index - 1] = calinski_harabasz_score(data, db.labels_)
-            davies_score[index - 1] = davies_bouldin_score(data, db.labels_)
-            sdbw_score[index - 1] = S_Dbw(data, db.labels_, method='Halkidi', metric='euclidean')
+        db = HDBSCAN(cluster_selection_epsilon=eps, min_samples=1)
+        y_pred = db.fit_predict(data)
+        labels_array[index - 1] = db.labels_
+        
+        n_clusters_ = len(set(db.labels_)) - (1 if -1 in db.labels_ else 0)
+        n_noise_ = list(db.labels_).count(-1)
         
         unique, counts = numpy.unique(y_pred, return_counts=True)
         print("Clustering Results:", dict(zip(unique, counts)))
