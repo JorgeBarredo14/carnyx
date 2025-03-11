@@ -267,7 +267,7 @@ def pca_technique_application(robust_samples, kind):
 def clustering_procedure(pca_samples, kind):
     global entries_list, n_tests, cal_n_traces, n_traces, y_pred, gauss_dict, mapeo_strings, mapeo_bugs, val, save_path, device, date
     
-    print("Searching stop index for sliding window={}...".format(int(i)))
+    print("Performing clustering...")
     silh_score = [np.nan for x in range(n_traces)]
     calinski_score = np.array([np.nan for x in range(n_traces)])
     davies_score = [np.nan for x in range(n_traces)]
