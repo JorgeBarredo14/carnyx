@@ -66,4 +66,4 @@ The PoC implements a comprehensive pipeline for power consumption analysis:
 To run the PoC:
 
 ```python
-python PWR_monitoring.py
+python PWR_monitoring_ethernet.py
