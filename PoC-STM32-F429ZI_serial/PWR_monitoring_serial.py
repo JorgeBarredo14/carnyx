@@ -272,13 +272,7 @@ def clustering_procedure(pca_samples, kind):
     global entries_list, n_tests, cal_n_traces, n_traces, y_pred, gauss_dict, mapeo_strings, mapeo_bugs, val, save_path, device, date
     
     print("Performing clustering...")
-    silh_score = [np.nan for x in range(n_traces)]
-    calinski_score = np.array([np.nan for x in range(n_traces)])
-    davies_score = [np.nan for x in range(n_traces)]
-    sdbw_score = [np.nan for x in range(n_traces)]
     labels_array = [[np.nan for y in range(2 * cal_n_traces + n_traces)] for x in range(n_traces)]
-    cons_values = int(i)
-    max_nans = int(gauss_dict[val] * cons_values)
     
     for index in range(1, n_traces + 1):
         data = pca_samples[:(2 * cal_n_traces + index)]
