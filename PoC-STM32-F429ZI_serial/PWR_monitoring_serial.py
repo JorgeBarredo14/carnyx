@@ -80,7 +80,7 @@ zip_filename = os.path.join(script_dir, 'STM32-F429ZI_PWR_bugs_' + date + '.zip'
 
 # Check if all parts exist (parts are named part_aa, part_ab, ..., part_am)
 parts_exist = True
-for part_suffix in ['aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah', 'ai', 'aj', 'ak', 'al', 'am']:
+for part_suffix in ['aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah', 'ai', 'aj', 'ak', 'al', 'am', 'an']:
     part_filename = f"{zip_part_prefix}{part_suffix}"
     if not os.path.isfile(part_filename):
         print(f"Error: Part file '{part_filename}' not found.")
@@ -92,7 +92,7 @@ if parts_exist:
     try:
         print(f"Recombining zip parts into one file...")
         with open(zip_filename, 'wb') as f_out:
-            for part_suffix in ['aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah', 'ai', 'aj', 'ak', 'al', 'am']:
+            for part_suffix in ['aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah', 'ai', 'aj', 'ak', 'al', 'am', 'an']:
                 part_filename = f"{zip_part_prefix}{part_suffix}"
                 with open(part_filename, 'rb') as f_in:
                     f_out.write(f_in.read())
