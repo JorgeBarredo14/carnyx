@@ -14,7 +14,7 @@ This PoC demonstrates automated power consumption analysis on the STM32-F429ZI p
 
 ## Files Structure
 
-- **PWR_monitoring.py**: Main Python script that handles the entire process including power trace extraction, preprocessing, analysis, and visualization.
+- **PWR_monitoring_ethernet.py**: Main Python script that handles the entire process including power trace extraction, preprocessing, analysis, and visualization.
 - **lecroy3.py**: Helper module for interfacing with LeCroy oscilloscopes (used for power trace acquisition).
 - **STM32-F429ZI_PWR_bugs_2024_02_20_10o32_part_aa through part_am**: Split archive containing sample power consumption traces from the STM32-F429ZI board. These files are automatically recombined and extracted by the script.
 
