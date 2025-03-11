@@ -293,7 +293,7 @@ def clustering_procedure(pca_samples, kind):
         n_noise_ = list(db.labels_).count(-1)
         
         unique, counts = numpy.unique(y_pred, return_counts=True)
-        print("Clustering Results:", dict(zip(unique, counts)))
+        #print("Clustering Results:", dict(zip(unique, counts)))
            
     bugs_entries_list = [mapeo_bugs[valor] for valor in entries_list]
     etiquetas_unicas_true = np.unique(bugs_entries_list)
