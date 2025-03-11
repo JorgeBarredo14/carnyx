@@ -394,8 +394,7 @@ def clustering_procedure(pca_samples, kind):
 
 def processing(input_signal, kind):
     globals()[f"{kind}_outlied_signal"] = outlier_detection(input_signal, kind)
-    globals()[f"{kind}_robust_samples"] = robust_covariance_procedure(globals()[f"{kind}_outlied_signal"], kind)
-    globals()[f"{kind}_pca_samples"] = pca_technique_application(globals()[f"{kind}_robust_samples"], kind)
+    globals()[f"{kind}_pca_samples"] = pca_technique_application(globals()[f"{kind}_outlied_signal"], kind)
     globals()[f"{kind}_etiquetas_unicas_true"], globals()[f"{kind}_etiquetas_unicas_pred"] = clustering_procedure(globals()[f"{kind}_pca_samples"], kind)
 
 def operation():
