@@ -7,7 +7,9 @@ The repository has the following structure:
 
 - **`Piñata/`**: Contains files for performing automated SCA (Side-Channel Analysis) on the **Riscure Piñata** platform.
 - **`STM32-F429ZI/`**: Contains files for performing automated SCA on **STM32 NUCLEO-144** boards (STM32-F429ZI).
-- **`PoC-STM32-F429ZI_Ethernet/`**: Contains a Python script for Proof of Concept (PoC) of metrics measured on the STM32 NUCLEO-144 board.
+- **`PoC-PWR_Piñata/`**: Contains a Python script for Proof of Concept (PoC) of metrics measured on the Riscure Piñata board.
+- **`PoC-STM32-F429ZI_serial/`**: Contains a Python script for Proof of Concept (PoC) of metrics measured on the STM32 NUCLEO-144 board, using the serial port.
+- **`PoC-STM32-F429ZI_Ethernet/`**: Contains a Python script for Proof of Concept (PoC) of metrics measured on the STM32 NUCLEO-144 board, using the Ethernet interface.
 - **`requirements.txt`**: Python dependencies required to run the scripts in the repository.
 
 ## Overview
