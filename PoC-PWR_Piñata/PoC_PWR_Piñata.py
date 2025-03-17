@@ -449,7 +449,7 @@ for it in range(n_fuzz):
     it_start = time.time()
     print("ITERATION", it + 1)
     entries = "a0,a1,00,02,03,04,05,06,07,08,09,0a,0b,0c,0d,0e,0f,a3"
-    entries_list_creation(entries)
+    #entries_list_creation(entries)
     cal_n_traces = 100
     #calibration(ssh)
     #bugs_capture(ssh)
