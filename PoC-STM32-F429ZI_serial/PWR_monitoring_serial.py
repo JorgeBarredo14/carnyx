@@ -270,10 +270,12 @@ def pca_technique_application(robust_samples, kind):
 
 def clustering_procedure(pca_samples, kind):
     global entries_list, n_tests, cal_n_traces, n_traces, y_pred, gauss_dict, mapeo_strings, mapeo_bugs, val, save_path, device, date
-    
+      
     print("Performing clustering...")
+    # Initialize array for storing labels
     labels_array = [[np.nan for y in range(2 * cal_n_traces + n_traces)] for x in range(n_traces)]
     
+    # Perform clustering for each iteration
     for index in range(1, n_traces + 1):
         data = pca_samples[:(2 * cal_n_traces + index)]
         instances = np.shape(data)[0]
@@ -290,39 +292,58 @@ def clustering_procedure(pca_samples, kind):
         labels_array[index - 1] = db.labels_
         
         n_clusters_ = len(set(db.labels_)) - (1 if -1 in db.labels_ else 0)
-        n_noise_ = list(db.labels_).count(-1)
-        
-        unique, counts = numpy.unique(y_pred, return_counts=True)
-        #print("Clustering Results:", dict(zip(unique, counts)))
-           
+        n_noise_ = list(db.labels_).count(-1)        
+    
+    unique, counts = np.unique(y_pred, return_counts=True)
+    print("Clustering Results:", dict(zip(unique, counts)))
+    
+    # Map entries to bug labels
     bugs_entries_list = [mapeo_bugs[valor] for valor in entries_list]
     etiquetas_unicas_true = np.unique(bugs_entries_list)
     etiquetas_unicas_pred = np.unique(y_pred[2 * cal_n_traces:])
     
+    # Initialize confusion matrix with initial predictions
     confus_matrix = np.zeros((len(etiquetas_unicas_true), len(etiquetas_unicas_pred)))
     for true_label, pred_label in zip(bugs_entries_list, y_pred[2 * cal_n_traces:]):
         confus_matrix[np.where(etiquetas_unicas_true == true_label)[0][0],
                       np.where(etiquetas_unicas_pred == pred_label)[0][0]] += 1
     
     y_pred_changed = np.copy(y_pred).astype(str)
+    # Define valid bug labels from mapeo_bugs
+    valid_bug_labels = list(mapeo_bugs.values())
+    
+    # Map predicted labels to true labels based on confusion matrix
     for i in range(len(etiquetas_unicas_true)):
         label = np.argmax(confus_matrix[i])
         rep = len(np.where(confus_matrix[i] == np.max(confus_matrix[i]))[0])
-        for label in range(rep):
-            index = np.where(confus_matrix[i] == np.max(confus_matrix[i]))[0][label]
+        for label_idx in range(rep):
+            index = np.where(confus_matrix[i] == np.max(confus_matrix[i]))[0][label_idx]
             if isinstance(etiquetas_unicas_pred[index], np.int64):
                 y_pred_changed[y_pred == etiquetas_unicas_pred[index]] = etiquetas_unicas_true[i]
     
+    # Assign unassociated predicted labels to "UAN"
+    for i in range(len(y_pred_changed)):
+        if y_pred_changed[i] not in valid_bug_labels:
+            y_pred_changed[i] = 'UAN'
+    
+    # Update unique predicted labels ensuring all are included
     etiquetas_unicas_pred = np.unique(y_pred_changed[2 * cal_n_traces:])
     valores_nuevos = np.setdiff1d(etiquetas_unicas_true, etiquetas_unicas_pred)
     etiquetas_unicas_pred = np.union1d(etiquetas_unicas_pred, valores_nuevos)
-    etiquetas_unicas_pred = np.roll(etiquetas_unicas_pred, -np.where(etiquetas_unicas_pred == 'E0101')[0])
+    # Ensure "UAN" is included if present in predictions
+    if 'UAN' not in etiquetas_unicas_pred and 'UAN' in y_pred_changed:
+        etiquetas_unicas_pred = np.append(etiquetas_unicas_pred, 'UAN')
+    # Reorder to place 'E0101' at the start
+    if 'E0101' in etiquetas_unicas_pred:
+        etiquetas_unicas_pred = np.roll(etiquetas_unicas_pred, -np.where(etiquetas_unicas_pred == 'E0101')[0][0])
     
+    # Recompute confusion matrix with updated labels
     confus_matrix = np.zeros((len(etiquetas_unicas_true), len(etiquetas_unicas_pred)))
     for true_label, pred_label in zip(bugs_entries_list, y_pred_changed[2 * cal_n_traces:]):
         confus_matrix[np.where(etiquetas_unicas_true == true_label)[0][0],
                       np.where(etiquetas_unicas_pred == pred_label)[0][0]] += 1
     
+    # Plot confusion matrix
     plt.figure(figsize=(20, 12), dpi=100)
     plt.imshow(confus_matrix, cmap=plt.get_cmap('GnBu'), interpolation='nearest')
     for i in range(len(etiquetas_unicas_true)):
@@ -334,11 +355,12 @@ def clustering_procedure(pca_samples, kind):
     plt.xticks(np.arange(len(etiquetas_unicas_pred)), etiquetas_unicas_pred, rotation=90)
     plt.yticks(np.arange(len(etiquetas_unicas_true)), etiquetas_unicas_true)
     plt.tick_params(axis='both', which='major', labelsize=22)
-    plt.xlabel('Assigned Labels', fontsize=22)
-    plt.ylabel('Actual Labels', rotation=90, verticalalignment='center', fontsize=22)
+    plt.xlabel('Predicted Labels', fontsize=22)
+    plt.ylabel('Real Labels', rotation=90, verticalalignment='center', fontsize=22)
     plt.savefig(save_path + device + "_entries_list_" + date + "_CONFUSION_MATRIX_TIMEDOMAIN_" + str(get_class_name(db)) + "_PWR.png", bbox_inches='tight', dpi=100)
     plt.show()
     
+    # 3D Scatter plot for clustering visualization
     categorical_colors = sns.color_palette("tab20")
     fig = plt.figure(figsize=(16, 16), dpi=100)
     ax = fig.add_subplot(projection='3d')
@@ -348,6 +370,7 @@ def clustering_procedure(pca_samples, kind):
     string_labels = [label for label in sorted_labels if any(char.isalpha() for char in label)]
     numeric_labels = [label for label in sorted_labels if label.isdigit()]
     
+    # Create legend elements for string labels
     for i in range(len(string_labels)):
         label = string_labels[i]
         color = categorical_colors[i % len(categorical_colors)]
@@ -357,6 +380,7 @@ def clustering_procedure(pca_samples, kind):
         ax.legend(handles=legend_elements, title='Clusters', fontsize=18)
     ax.get_legend().get_title().set_fontsize(20)
     
+    # Plot data points in 3D
     for i in range(2 * cal_n_traces + 1, len(y_pred)):
         label = y_pred_changed[i]
         x_val = data[i, int(np.round(np.shape(pca_samples)[1] / 2) - 1)]
@@ -372,7 +396,10 @@ def clustering_procedure(pca_samples, kind):
     plt.title("Clustering considering {} elements (PWR), {}, Time Domain in {}".format(n_traces, str(get_class_name(db)), device), fontsize=25)
     plt.savefig(save_path + device + "_entries_list_" + date + "_" + str(get_class_name(db)) + "_PWR.png", bbox_inches='tight', dpi=100)
     plt.show()
+    
     return etiquetas_unicas_true, etiquetas_unicas_pred
+
+
 
 def processing(input_signal, kind):
     globals()[f"{kind}_outlied_signal"] = outlier_detection(input_signal, kind)
@@ -445,7 +472,10 @@ for it in range(n_fuzz):
     it_start = time.time()
     print("ITERATION", it + 1)
     entries = "a0,a1,00,02,03,04,05,06,07,08,09,0a,0b,0c,0d,0e,0f,a3"
+    #entries_list_creation(entries)
     cal_n_traces = 100
+    #calibration(ssh)
+    #bugs_capture(ssh)
     
     with open(list_nfs_path + "_entries_list_" + date + ".csv") as file:
         entries_list = [line.rstrip() for line in file]
